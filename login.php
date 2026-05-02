@@ -8,21 +8,20 @@ if(isset($_POST['cadastrar'])){
     $name = $_POST['name'];
     $email = $_POST['email'];
     $password = $_POST['password'];
-    $escolha = $_POST['escolha'];
+    
 
-    $_SESSION['username'] = $_POST['name'];
 
     $has = password_hash($password, PASSWORD_DEFAULT);
 
-    if(empty($name) or empty($email) or empty($password) or empty($escolha)){
+    if(empty($name) or empty($email) or empty($password)){
         $mensagem = "Precisa preencher todos os campos!";
     }else{
         
-        $sql = "INSERT INTO func(name,email,password,escolha) VALUES(?,?,?,?)";
+        $sql = "INSERT INTO func(name,email,password) VALUES(?,?,?)";
 
         $stmt = $c->prepare($sql);
 
-        $stmt->bind_param("ssss", $name, $email, $has, $escolha);
+        $stmt->bind_param("sss", $name, $email, $has);
 
         if($stmt->execute()){
             include_once 'medico.php';
@@ -33,7 +32,39 @@ if(isset($_POST['cadastrar'])){
         $stmt->close();
     }
 }
-$c->close();
+
+if(isset($_POST['login'])){
+    $email = $_POST['email'];
+    $senha = $_POST['password'];
+
+    $sql = "SELECT id, name, email, password, escolha FROM func WHERE email = ?";
+
+    $stmt = $c->prepare($sql);
+    $stmt->bind_param("s", $email);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if($result->num_rows === 1){
+        $usuario = $result->fetch_assoc();
+
+        if(password_verify($senha, $usuario['password'])){
+            $_SESSION['usuario_id'] = $usuario['id'];
+            $_SESSION['username'] = $usuario['username'];
+            $_SESSION['usuario_email'] = $usuario['email'];
+
+            header("Location: medico.php");
+            exit();
+        }
+        else{
+            $error = "Senha incorreta";
+        }
+    }else{
+        $error = "Usuario inexistente";
+    }
+    $stmt->close();
+}
+
+
 ?>
 
 <!DOCTYPE html>
@@ -58,28 +89,24 @@ $c->close();
             <input type="email" placeholder="Digite o e-mail" name="email" required>
             <input type="password" placeholder="Digite a senha" name="senha" required>
             <input type="password" name="password" placeholder="Confirme a senha" required>
-
-            
-                <select name="escolha" id="especialidade" required> 
-                    <option value = "">Sector...</option>
-                    <option value = "dotor">Doctor</option>
-                    <option value = "administrador"> Administrador</option>
-                    <option value = "enfermeiro">Enfermeiro</option>
-                </select>
   
             
             <button class="cadastrado" type="submit" name="cadastrar">Cadastrar</button>
         </form></div>
 
         <div class="insira-container login-face">
-            <form action="">
+            <form action="" method="post">
                 <h1>Login</h1>
+
+                <?php echo $error; ?>
                 
-                <input type="email" placeholder="Digite o e-mail" required>
-                <input type="password" placeholder="Digite a senha" required>
-                <button login-conta>enviar</button>
+                <input type="email" placeholder="Digite o e-mail" name="email" required>
+                <input type="password" placeholder="Digite a senha" name="password" required>
+                <button login-conta name="login">Enviar</button>
                 <a href="#">esqueceu a senha?</a> 
             </form></div>
+
+
             <div class="toggle-container">
                 <div class="toggle">
                     <div class="toggle-painel  toggle-left">
